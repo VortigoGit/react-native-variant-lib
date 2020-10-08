@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@Params": ["./src/parameters"],
+        "@Strings": ["./src/strings"],
+        "@App/*": ["./src/*"],
+        "@Base/*": ["./src/*"],
+      }
+    },
+    "exclude": ["node_modules"],
+    "include": ["./", "./__types__"]
+}
