@@ -13,21 +13,29 @@ buildscript {
 
 // apply plugin: 'com.android.library'
 
-// import com.android.build.OutputFile
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.apache.tools.ant.taskdefs.condition.Os
 
 
-// android {
-//   afterEvaluate {
-//       preBuild.dependsOn(writeVariantCache)
-//       def sets = tasks.findAll { t -> t.path.contains(':app:pre') && t.path.endsWith('DebugBuild') }
-//       sets.forEach {
-//           t -> t.finalizedBy(startPackagerIfRequired)
-//       }
-//   }
-// }
+android {
+  productFlavors.whenObjectAdded { flavor ->
+    flavor.ext.set('variant', '')
+  }
+
+  afterEvaluate {
+      preBuild.dependsOn(validateFlavorHasVariantFolder)
+      def sets = tasks.findAll { t -> t.path.contains(':app:pre') && t.path.endsWith('DebugBuild') }
+      sets.forEach {
+          t -> t.finalizedBy(startPackagerIfRequired)
+      }
+
+      def jsAndAssetsSets = tasks.findAll { t -> t.path.contains(':app:merge') && t.path.endsWith('Assets') }
+      jsAndAssetsSets.forEach {
+        t -> t.finalizedBy(writeVariantCache)
+      }
+  }
+}
 
 def getCurrentFlavor() {
     Gradle gradle = getGradle()
@@ -86,32 +94,41 @@ task startPackagerIfRequired() {
             print('Starting JS server...')
                 if (Os.isFamily(Os.FAMILY_MAC)) {
                     exec {
-                        workingDir projectDir.path.concat("/../../../react-native/scripts")
-                        commandLine 'open', projectDir.path.concat("/../../../react-native/scripts/launchPackager.command")
+                        workingDir projectDir.path.concat("/../../node_modules/react-native/scripts")
+                        commandLine 'open', projectDir.path.concat("/../../node_modules/react-native/scripts/launchPackager.command")
                     }
                 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-                    new File(projectDir.path.concat("/../../../react-native/scripts"), ".packager.bat").text = """set RCT_METRO_PORT=8081"""
+                    new File(projectDir.path.concat("/../../node_modules/react-native/scripts"), ".packager.bat").text = """set RCT_METRO_PORT=8081"""
                     new ProcessBuilder()
-                            .directory(file(projectDir.path.concat("/../../../react-native/scripts")))
-                            .command('cmd.exe', '/C', 'start', 'cmd.exe', '@cmd', '/C', projectDir.path.concat("/../../../react-native/scripts/launchPackager.bat"))
+                            .directory(file(projectDir.path.concat("/../../node_modules/react-native/scripts")))
+                            .command('cmd.exe', '/C', 'start', 'cmd.exe', '@cmd', '/C', projectDir.path.concat("/../../node_modules/react-native/scripts/launchPackager.bat"))
                             .start()
                 } else if (Os.isFamily(Os.FAMILY_UNIX)) {
-                    commandLine 'sh', projectDir.path.concat("/../../../react-native/scripts/launchPackager.command")
+                    commandLine 'sh', projectDir.path.concat("/../../node_modules/react-native/scripts/launchPackager.command")
                 }
 
         }
     }
 }
 
+
 task writeVariantCache() {
     doFirst {
         def flavorName = getCurrentVariant()
         print('Flavor name: ' + flavorName)
         if (flavorName != '') {
-            new File(projectDir.path.concat("/../../../react-native-variant-lib/variantTemplate"), ".latest_variant.env").text = """${flavorName}"""
+            new File(projectDir.path.concat("/../../node_modules/react-native-variant-lib/variantTemplate"), ".latest_variant.env").text = """${flavorName}"""
         }
     }
+}
 
+task validateFlavorHasVariantFolder {
+    doFirst {
+        def variantName = getCurrentVariant()
+        if (!(variantName != '' && new File("$projectDir/../../${variantName}").exists())) {
+            throw new org.gradle.api.BuildCancelledException("Variant folder not found")
+        }
+    }
 }
 
 build.finalizedBy(writeVariantCache)

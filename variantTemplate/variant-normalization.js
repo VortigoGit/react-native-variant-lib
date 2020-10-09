@@ -16,7 +16,7 @@ const normalize = (androidBasePath) => {
     if (variantName) {
       const packageName = fs
         .readFileSync(
-          path.join(androidBasePath, "app", "src", "main", "AndroidManifest.xml"), 
+          path.join(androidBasePath, "android", "app", "src", "main", "AndroidManifest.xml"), 
           "utf8",
         )
         // $FlowFixMe

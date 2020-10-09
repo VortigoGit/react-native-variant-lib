@@ -7,9 +7,9 @@ function getVariant() {
 function updateFromLatestRun() {
   try {
     variant = fs
-      .readFileSync(require('path').join('.latest_variant.env')) // Make dynamic to library
+      .readFileSync(require('path').join(__dirname, '.latest_variant.env')) // Make dynamic to library
       .toString();
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function variantDirectoryExists(variantPath) {
