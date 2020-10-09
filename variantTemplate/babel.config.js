@@ -14,7 +14,7 @@ function babelVariantSetup(basePath) {
     files: ["../__types__/parameters.d.ts"],
   });
 
-  module.exports = function (api) {
+  return function (api) {
     api.cache(true);
     return {
       plugins: [
@@ -64,3 +64,5 @@ function babelVariantSetup(basePath) {
     };
   };
 }
+
+module.exports = babelVariantSetup

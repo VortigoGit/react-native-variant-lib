@@ -1,0 +1,118 @@
+buildscript {
+  if (project == rootProject) {
+    repositories {
+      google()
+      jcenter()
+    }
+
+    dependencies {
+      // classpath 'com.android.tools.build:gradle:4.0.1'
+    }
+  }
+}
+
+// apply plugin: 'com.android.library'
+
+// import com.android.build.OutputFile
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import org.apache.tools.ant.taskdefs.condition.Os
+
+
+// android {
+//   afterEvaluate {
+//       preBuild.dependsOn(writeVariantCache)
+//       def sets = tasks.findAll { t -> t.path.contains(':app:pre') && t.path.endsWith('DebugBuild') }
+//       sets.forEach {
+//           t -> t.finalizedBy(startPackagerIfRequired)
+//       }
+//   }
+// }
+
+def getCurrentFlavor() {
+    Gradle gradle = getGradle()
+    String  tskReqStr = gradle.getStartParameter().getTaskRequests().toString()
+    Pattern pattern;
+    pattern = Pattern.compile("(assemble|install)(\\w+)(Release|Debug)")
+
+    Matcher matcher = pattern.matcher( tskReqStr )
+
+    if(matcher.find())
+        return matcher.group(2).toLowerCase()
+    else
+    {
+        println "NO MATCH FOUND"
+        return "";
+    }
+}
+
+def getCurrentVariant() {
+    def currFlavor = getCurrentFlavor()
+
+    print """Found flavor name: ${currFlavor}"""
+
+    def outStr = ''
+    android.productFlavors.all{ flavor ->
+
+        if( flavor.name==currFlavor )
+            outStr=flavor.ext.get('variant')
+    }
+
+    return outStr
+}
+
+task startPackagerIfRequired() {
+    doFirst {
+
+        def port = System.getenv('RCT_METRO_PORT')
+        def status
+        try {
+            def resp = new URL( """http://localhost:${port == null || port.trim().length() == 0 ? '8081' : port}/status""" ).text
+            if (resp == 'packager-status:running') {
+                status = 'running'
+            } else {
+                status = 'unrecognized'
+            }
+        } catch (e) {
+            print(e.getMessage())
+            status = 'not_running'
+        }
+
+        if (status == 'running') {
+            print('JS server already running.');
+        } else if (status == 'unrecognized') {
+            print('JS server not recognized, continuing with build...')
+        } else {
+            print('Starting JS server...')
+                if (Os.isFamily(Os.FAMILY_MAC)) {
+                    exec {
+                        workingDir projectDir.path.concat("/../../../react-native/scripts")
+                        commandLine 'open', projectDir.path.concat("/../../../react-native/scripts/launchPackager.command")
+                    }
+                } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+                    new File(projectDir.path.concat("/../../../react-native/scripts"), ".packager.bat").text = """set RCT_METRO_PORT=8081"""
+                    new ProcessBuilder()
+                            .directory(file(projectDir.path.concat("/../../../react-native/scripts")))
+                            .command('cmd.exe', '/C', 'start', 'cmd.exe', '@cmd', '/C', projectDir.path.concat("/../../../react-native/scripts/launchPackager.bat"))
+                            .start()
+                } else if (Os.isFamily(Os.FAMILY_UNIX)) {
+                    commandLine 'sh', projectDir.path.concat("/../../../react-native/scripts/launchPackager.command")
+                }
+
+        }
+    }
+}
+
+task writeVariantCache() {
+    doFirst {
+        def flavorName = getCurrentVariant()
+        print('Flavor name: ' + flavorName)
+        if (flavorName != '') {
+            new File(projectDir.path.concat("/../../../react-native-variant-lib/variantTemplate"), ".latest_variant.env").text = """${flavorName}"""
+        }
+    }
+
+}
+
+build.finalizedBy(writeVariantCache)
+
