@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { getVariant } = require("./variant-store-utils");
 
-const normalize = (androidBasePath) => {
+const normalize = (androidBasePath, append=true) => {
   const variantArg = process.argv.find((a) => a.includes("--variant="));
   if (process.argv.find((a) => a === "run-ios")) {
     process.argv = process.argv.filter((a) => !a.includes("--variant="));
@@ -21,12 +21,20 @@ const normalize = (androidBasePath) => {
         )
         // $FlowFixMe
         .match(/package="(.+?)"/)[1];
-      process.argv.push(
-        `--appId=${packageName}`.replace(
-          /.[a-zA-Z]+$/,
-          "." + variantName.replace("Release", ""),
-        ),
-      );
+      
+      if (append) {
+        process.argv.push(
+          `--appId=${packageName}`.concat("." + variantName.replace("Release", ""),
+          ),
+        )
+      } else {
+        process.argv.push(
+          `--appId=${packageName}`.replace(
+            /.[a-zA-Z]+$/,
+            "." + variantName.replace("Release", ""),
+          ),
+        );
+      }
     }
 
     if (variantName && !variantName.endsWith("Release")) {
