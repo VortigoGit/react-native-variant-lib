@@ -30,9 +30,9 @@ android {
           t -> t.finalizedBy(startPackagerIfRequired)
       }
 
-      def jsAndAssetsSets = tasks.findAll { t -> t.path.contains(':app:merge') && t.path.endsWith('Assets') }
+      def jsAndAssetsSets = tasks.findAll { t -> t.path.contains(':app:bundle') && t.path.endsWith('JsAndAssets') }
       jsAndAssetsSets.forEach {
-        t -> t.finalizedBy(writeVariantCache)
+        t -> t.dependsOn(writeVariantCache)
       }
   }
 }
