@@ -41,7 +41,7 @@ def getCurrentFlavor() {
     Gradle gradle = getGradle()
     String  tskReqStr = gradle.getStartParameter().getTaskRequests().toString()
     Pattern pattern;
-    pattern = Pattern.compile("(assemble|install|bundle)(\\w+)(Release|Debug)")
+    pattern = Pattern.compile('(assemble|install|bundle)(\\w+?)(Release|Debug)?(]|\$)')
 
     Matcher matcher = pattern.matcher( tskReqStr )
 
